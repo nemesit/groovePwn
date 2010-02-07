@@ -10,7 +10,7 @@ WAIT_TIMEOUT = 1
 BLOCK_SIZE = 1
 
 
-import BaseHTTPServer, socket, select, urlparse, SocketServer
+import BaseHTTPServer, socket, select, urlparse, SocketServer, grooveMod
 
 def addressToTuple(addressString):
 	"""
@@ -57,6 +57,10 @@ class GroovePwnProxy(BaseHTTPServer.BaseHTTPRequestHandler):
 		1Kbyte. maxIdleTimeout is the maximum number of idle responses to tolerate
 		before ending the stream.
 		"""
+		
+		# Load the correct modifier for this file
+		gsFilter = grooveMod.getFilter(self.path)
+		
 		# A list of sockets which are to be connected
 		streamSockets = (self.connection, remoteSiteSocket)
 		
@@ -82,8 +86,9 @@ class GroovePwnProxy(BaseHTTPServer.BaseHTTPRequestHandler):
 					data = readSocket.recv(BLOCK_SIZE * 1024 * 8)
 					if data:
 						# Data was recieved, forward it on
-						writeSocket.send(data)
+						writeSocket.send(gsFilter.process(data))
 						idleResponseCount = 0
+		gsFilter.done()
 	
 	def do_GET(self):
 		url = urlparse.urlparse(self.path, "http")
