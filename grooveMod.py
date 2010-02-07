@@ -34,7 +34,11 @@ class SongDownloader(Filter):
 		return Filter.process(self, data)
 	
 	def done(self):
-		header, song = self.data.split("\r\n\r\n", 2)
+		try:
+			header, song = self.data.split("\r\n\r\n", 2)
+		except ValueError:
+			# Header issues of some sort...
+			return Filter.done(self)
 		
 		# Check that a music file arrived
 		if len(song) > 10000:
