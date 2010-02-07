@@ -88,7 +88,10 @@ class GroovePwnProxy(BaseHTTPServer.BaseHTTPRequestHandler):
 						# Data was recieved, forward it on
 						writeSocket.send(gsFilter.process(data))
 						idleResponseCount = 0
-		gsFilter.done()
+		
+		finalData = gsFilter.done()
+		if finalData != None:
+			self.connection.send(finalData)
 	
 	def do_GET(self):
 		url = urlparse.urlparse(self.path, "http")
@@ -126,6 +129,10 @@ class GroovePwnProxy(BaseHTTPServer.BaseHTTPRequestHandler):
 		finally:
 			remoteSiteSocket.close()
 			self.connection.close()
+	
+	def log_message(self,*args,**kwargs):
+		# Disable debug info
+		pass
 	
 	do_DELETE = do_GET
 	do_HEAD = do_GET

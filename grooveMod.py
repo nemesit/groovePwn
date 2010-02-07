@@ -2,7 +2,14 @@
 
 import re
 
-streamURLRegex = re.compile("(http://.*[.]grooveshark[.]com/.*[.]mp3.*|http://stream.*[.]grooveshark[.]com/stream.php)")
+streamURLRegex = re.compile(
+	"(http://.*[.]grooveshark[.]com/.*[.]mp3.*" +
+	"|http://stream.*[.]grooveshark[.]com/stream.php)"
+)
+
+adCSSRegex = re.compile(
+	"http://.*[.]grooveshark[.]com/webincludes/css/gslite[.]css.*"
+)
 
 class Filter(object):
 	def __init__(self, *args, **kwargs):
@@ -22,9 +29,6 @@ class SongDownloader(Filter):
 	# Remember if the headers have been sent yet
 	headersFinished = False
 	
-	def __init__(self, path):
-		print "Pwning in progress..."
-	
 	def process(self, data):
 		self.data += data
 		return Filter.process(self, data)
@@ -37,14 +41,39 @@ class SongDownloader(Filter):
 			mp3File = open("song.mp3","w")
 			mp3File.write(song)
 			mp3File.close()
-			print "Pwning Complete"
-		else:
-			print "This script got pwn't: Not a music file."
 		
 		return Filter.done(self)
+
+class AdStripper(Filter):
+	"""
+	A filter to strip out ads from grooveshark.
+	
+	This uses a prettey nasty hack by simply swapping out the actual response with
+	some static CSS and a rough invalid HTTP header. It works but it ain't prety.
+	"""
+	def process(self, data):
+		return ""
+	
+	def done(self):
+		print "Strip ads..."
+		
+		# Makeshift header -- invalid really!
+		newCSS  = "HTTP/1.0 200 OK\r\n"
+		newCSS += "\r\n"
+		
+		# Create a simple stylesheet to do the minimum to show just the flash
+		# component and no ads!
+		newCSS += "body { background-color : black; color : black; }"
+		newCSS += "#adPane { display : none }"
+		newCSS += "#gsliteswf { position : absolute; display : block;"
+		newCSS += "             top : 0; left : 0; right : 0; bottom : 0;}"
+		
+		return newCSS
 
 def getFilter(path):
 	if streamURLRegex.match(path):
 		return SongDownloader(path)
+	elif adCSSRegex.match(path):
+		return AdStripper(path)
 	else:
 		return Filter(path)
