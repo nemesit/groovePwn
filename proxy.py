@@ -1,11 +1,16 @@
 #!/usr/bin/python
-import BaseHTTPServer, socket, select, urlparse, SocketServer
+
+__doc__ = """groovePwn -- a grooveshark caching proxy."""
+__version__ = "0.1"
 
 # The timeout (secs) to wait for a socket to become available
 WAIT_TIMEOUT = 1
 
 # Number of 1kb blocks to transfer per cycle
 BLOCK_SIZE = 1
+
+
+import BaseHTTPServer, socket, select, urlparse, SocketServer
 
 def addressToTuple(addressString):
 	"""
@@ -27,6 +32,8 @@ def otherItem(tuple, element):
 		return tuple[0]
 
 class GroovePwnProxy(BaseHTTPServer.BaseHTTPRequestHandler):
+	server_version = "groovePwnProxy/" + __version__
+	rbufsize = 0						# self.rfile Be unbuffered
 	def _canConnectToTarget(self, targetAddressString, soc):
 		"""
 		Opens a connection to a remote system via the provided socket and
@@ -44,7 +51,7 @@ class GroovePwnProxy(BaseHTTPServer.BaseHTTPRequestHandler):
 			self.send_error(404, message)
 			return False
 	
-	def _streamData(self, remoteSiteSocket, maxIdleTimeout=20):
+	def _streamData(self, remoteSiteSocket, maxIdleTimeout=5):
 		"""
 		Attempt to stream data from the remote socket to the client in blocks of
 		1Kbyte. maxIdleTimeout is the maximum number of idle responses to tolerate
@@ -57,14 +64,16 @@ class GroovePwnProxy(BaseHTTPServer.BaseHTTPRequestHandler):
 		# an idle response.
 		idleResponseCount = 0
 		
-		while True:
+		while idleResponseCount < maxIdleTimeout:
+			idleResponseCount += 1
+			
 			# Wait until a socket is ready to read
 			readySockets, _ , errSockets = select.select(streamSockets, [],
 			                                             streamSockets, WAIT_TIMEOUT)
 			if errSockets:
 				# An exceptional state has occurred on one of the sockets
 				break
-			else:
+			if readySockets:
 				# For each socket which is ready, read from it
 				for readSocket in readySockets:
 					writeSocket = otherItem(streamSockets, readSocket)
@@ -75,28 +84,6 @@ class GroovePwnProxy(BaseHTTPServer.BaseHTTPRequestHandler):
 						# Data was recieved, forward it on
 						writeSocket.send(data)
 						idleResponseCount = 0
-					else:
-						# Data was not recieved -- idle/timeout
-						idleResponseCount += 1
-			
-			# Exit if the response count has been reached
-			if idleResponseCount >= maxIdleTimeout:
-				break
-	
-	def do_CONNECT(self):
-		remoteSiteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		try:
-			if self._canConnectToTarget(self.path, remoteSiteSocket):
-				# A connection has been established, send the header
-				self.wfile.write(self.protocol_version
-				                 + " 200 Connection established\r\n")
-				self.wfile.write("Proxy-agent: %s\r\n" % self.version_string())
-				self.wfile.write("\r\n")
-				
-				self._streamData(remoteSiteSocket, maxIdleTimeout=300)
-		finally:
-			remoteSiteSocket.close()
-			self.connection.close()
 	
 	def do_GET(self):
 		url = urlparse.urlparse(self.path, "http")
@@ -111,26 +98,16 @@ class GroovePwnProxy(BaseHTTPServer.BaseHTTPRequestHandler):
 		remoteSiteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		try:
 			if self._canConnectToTarget(url.netloc, remoteSiteSocket):
-				# Format a URL for the remote site's request header
-				formattedURL = urlparse.urlunparse(( "", "",
-					url.path,
-					url.params,
-					url.query, ""
-				))
-				
-				# The top of the header indicating the connection details
-				headerTop = "%s %s %s\r\n"%(
+				# Send top of the header indicating the connection details
+				remoteSiteSocket.send("%s %s %s\r\n"%(
 					self.command, # e.g. GET, HEAD, etc.
-					formattedURL,
+					urlparse.urlunparse(("", "", url.path, url.params, url.query, "")),
 					self.request_version
-				)
+				))
 				
 				# Inform the remote site that the connection to it will cease
 				self.headers['Connection'] = 'close'
 				del self.headers['Proxy-Connection']
-				
-				# Send the header top
-				remoteSiteSocket.send(headerTop)
 				
 				# Send headers to the client
 				for key_val in self.headers.items():
