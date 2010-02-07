@@ -9,7 +9,6 @@ WAIT_TIMEOUT = 1
 # Number of 1kb blocks to transfer per cycle
 BLOCK_SIZE = 1
 
-
 import BaseHTTPServer, socket, select, urlparse, SocketServer, grooveMod
 
 def addressToTuple(addressString):
@@ -151,7 +150,15 @@ def startServer(port=8080):
 	serverAddress = (hostname, port)
 	
 	server = ThreadingHTTPServer(serverAddress, GroovePwnProxy)
+	
+	print "Starting a groovePwn proxy server on localhost:%i"%(port,)
+	print "Instruct your browser to use this as the proxy --",
+	print "groovePwn will save all MP3s you listen to in this folder."
+	
 	server.serve_forever()
 
 if __name__ == "__main__":
+	print "groovePwn v%s"%(__version__,),
+	print "(c) 2010 Jonathan Heathcote -- GPLv3"
+	print "FOR EDUCATIONAL USE ONLY.\n"
 	startServer()

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import re
+import re, tempfile, mp3Handler
 
 streamURLRegex = re.compile(
 	"(http://.*[.]grooveshark[.]com/.*[.]mp3.*" +
@@ -38,9 +38,12 @@ class SongDownloader(Filter):
 		
 		# Check that a music file arrived
 		if len(song) > 10000:
-			mp3File = open("song.mp3","w")
+			_ , mp3FileName = tempfile.mkstemp()
+			mp3File = open(mp3FileName, "w")
 			mp3File.write(song)
 			mp3File.close()
+			
+			mp3Handler.organiseMP3(mp3FileName)
 		
 		return Filter.done(self)
 
