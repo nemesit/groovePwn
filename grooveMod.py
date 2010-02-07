@@ -43,7 +43,7 @@ class SongDownloader(Filter):
 		# Check that a music file arrived
 		if len(song) > 10000:
 			_ , mp3FileName = tempfile.mkstemp()
-			mp3File = open(mp3FileName, "w")
+			mp3File = open(mp3FileName, "wb")
 			mp3File.write(song)
 			mp3File.close()
 			
