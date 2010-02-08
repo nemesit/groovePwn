@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, shutil, ID3
+import os, shutil, ID3, errno
 
 def organiseMP3(tempFileName):
 	try:
@@ -16,7 +16,7 @@ def organiseMP3(tempFileName):
 		try:
 			os.makedirs(songDir)
 		except OSError, e:
-			if e.errno != 17:
+			if e.errno != errno.EEXIST:
 				# Not a "file exists" error: propogate on
 				raise e
 		target = os.path.join(songDir, fileName)
