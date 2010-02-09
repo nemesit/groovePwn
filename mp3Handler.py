@@ -26,7 +26,12 @@ def organiseMP3(tempFileName):
 		print "Pwn't an MP3 to: %s"%(target,)
 	except ID3.InvalidTagError:
 		# Delete the tempoary file
-		os.remove(tempFileName)
+		print "Tag data missing but still stored."
+		shutil.move(tempFileName, "./")
 	except KeyError:
 		# Some very important tag data is missing: can't do anything
-		os.remove(tempFileName)
+		print "Tag data missing but still stored."
+		shutil.move(tempFileName, "./")
+	except Exception, e:
+		print "Some unknown encoding/identification error occurred: Temp stored.", e
+		shutil.move(tempFileName, "./")
