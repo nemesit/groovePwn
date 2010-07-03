@@ -72,6 +72,7 @@ class AdStripper(Filter):
 		# component and no ads!
 		newCSS += "body { background-color : black; color : black; }"
 		newCSS += "#adPane { display : none }"
+		newCSS += "#sidebarFrameWrapper { display : none }"
 		newCSS += "#gsliteswf { position : absolute; display : block;"
 		newCSS += "             top : 0; left : 0; right : 0; bottom : 0;}"
 		
